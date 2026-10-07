@@ -1,10 +1,10 @@
 import { profile, roles, defaultRole, skills, projects, posts } from './data.js';
+import { roleFromURL, mountAdminBar } from './admin-bar.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const roleKeys = Object.keys(roles);
 
 /* ---------- 고정 정보 채우기 ---------- */
 $$('[data-bind]').forEach((el) => { el.textContent = profile[el.dataset.bind] ?? ''; });
@@ -12,35 +12,13 @@ $$('[data-href]').forEach((el) => { el.href = profile[el.dataset.href] || '#'; }
 $('#mail-link').href = `mailto:${profile.email}`;
 $('#keywords').innerHTML = profile.keywords.map((k) => `<span class="chip">${esc(k)}</span>`).join('');
 
-/* ---------- 직무(?role=) ---------- */
-function readRole() {
-  const r = new URLSearchParams(location.search).get('role');
-  return roleKeys.includes(r) ? r : defaultRole;
-}
-let currentRole = readRole();
+/* ---------- 직무 (?v=비밀코드) ---------- */
+// 방문자에게는 주소에 담긴 직무 하나만 보입니다. 직무 전환은 관리자 모드에서만 가능합니다.
+let currentRole = roleFromURL(roles, defaultRole);
 
-const tabs = $('#role-tabs');
-tabs.innerHTML = roleKeys.map((k) => `<button type="button" role="tab" data-role="${k}">${k}</button>`).join('');
-tabs.addEventListener('click', (e) => {
-  const btn = e.target.closest('button[data-role]');
-  if (btn) setRole(btn.dataset.role);
-});
-tabs.addEventListener('keydown', (e) => {
-  if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-  const i = roleKeys.indexOf(currentRole);
-  const next = roleKeys[(i + (e.key === 'ArrowRight' ? 1 : roleKeys.length - 1)) % roleKeys.length];
-  setRole(next);
-  $(`button[data-role="${next}"]`, tabs).focus();
-});
-
-function setRole(role, { push = true } = {}) {
+function setRole(role) {
   if (!roles[role]) return;
   currentRole = role;
-  if (push) {
-    const url = new URL(location.href);
-    url.searchParams.set('role', role);
-    history.replaceState(null, '', url);
-  }
   applyRole();
 }
 
@@ -60,13 +38,8 @@ function typeTitle(text) {
 function applyRole() {
   const r = roles[currentRole];
   document.documentElement.style.setProperty('--rgb', r.rgb);
-  $$('button[data-role]', tabs).forEach((b) => {
-    const on = b.dataset.role === currentRole;
-    b.setAttribute('aria-selected', on);
-    b.tabIndex = on ? 0 : -1;
-  });
+  document.title = `박영희 · ${r.label} Portfolio`;
   $$('[data-role-name]').forEach((el) => { el.textContent = currentRole; });
-  $('#constellation-role').textContent = currentRole;
   typeTitle(r.title);
   $('#stack').innerHTML = skills[currentRole].map((s, i) => `<span class="chip" style="animation-delay:${i * 40}ms">${esc(s)}</span>`).join('');
   renderConstellation();
@@ -93,7 +66,7 @@ function renderConstellation() {
     const [x, y] = NODES[i];
     const big = BIG.has(i);
     const flip = x > 420;
-    const used = projects.filter((p) => p.tags.includes(skill));
+    const used = projects.filter((p) => p.roles.includes(currentRole) && p.tags.includes(skill));
     const tip = used.length ? `사용한 프로젝트: ${used.map((p) => p.title).join(', ')}` : '이 기술을 쓴 프로젝트를 추가해 보세요';
     const offset = big ? 15 : 12;
     const transform = flip ? `translate(calc(-100% + ${offset}px), -50%)` : `translate(-${offset}px, -50%)`;
@@ -111,36 +84,24 @@ function renderConstellation() {
 $('#constellation').addEventListener('click', (e) => {
   const node = e.target.closest('.star-node');
   if (!node) return;
-  const p = projects.find((pr) => pr.tags.includes(node.dataset.skill));
+  const p = projects.find((pr) => pr.roles.includes(currentRole) && pr.tags.includes(node.dataset.skill));
   const target = p ? document.getElementById(p.id) : $('#about');
   target?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
 });
 
 /* ---------- 프로젝트 ---------- */
-function orderedProjects() {
-  const match = projects.filter((p) => p.roles.includes(currentRole))
+// 이 직무에 해당하는 프로젝트만 보여줍니다. roles 배열에서 앞에 있을수록 먼저 나옵니다.
+function roleProjects() {
+  return projects.filter((p) => p.roles.includes(currentRole))
     .sort((a, b) => a.roles.indexOf(currentRole) - b.roles.indexOf(currentRole));
-  const rest = projects.filter((p) => !p.roles.includes(currentRole));
-  return { match, rest };
 }
 
-function cardHTML(p, featured) {
-  const meta = `${esc(p.period)} · ${esc(p.team)} · ${p.roles.map(esc).join(' / ')}`;
+function cardHTML(p, i) {
   const tags = `<div class="tags">${p.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join('')}</div>`;
-  if (!featured) {
-    return `<article class="card card--minor reveal" id="${p.id}">
-      <div class="card__body">
-        <div class="card__meta">${meta}</div>
-        <h3 class="card__title">${esc(p.title)} <span class="arrow">↗</span></h3>
-        <p class="muted">${esc(p.summary)}</p>
-        ${tags}
-      </div>
-    </article>`;
-  }
   return `<article class="card reveal" id="${p.id}">
     <div class="card__thumb">[스크린샷]</div>
     <div class="card__body">
-      <div class="card__meta"><span class="badge">대표</span>${meta}</div>
+      <div class="card__meta"><span class="card__num">0${i + 1}</span>${esc(p.period)} · ${esc(p.team)}</div>
       <h3 class="card__title">${esc(p.title)} <span class="arrow">↗</span></h3>
       <dl class="par">
         <dt>문제</dt><dd>${esc(p.problem)}</dd>
@@ -158,14 +119,14 @@ function cardHTML(p, featured) {
 
 let indexObserver;
 function renderProjects() {
-  const { match, rest } = orderedProjects();
   const list = $('#project-list');
-  list.innerHTML = match.map((p) => cardHTML(p, true)).join('')
-    + (rest.length ? `<p class="group-label">// 그 밖의 프로젝트</p>${rest.map((p) => cardHTML(p, false)).join('')}` : '');
+  const items = roleProjects();
+  list.innerHTML = items.length
+    ? items.map(cardHTML).join('')
+    : '<p class="muted">[이 직무의 프로젝트를 data.js에 추가해 주세요]</p>';
 
-  const all = [...match, ...rest];
-  $('#project-index').innerHTML = all.map((p, i) =>
-    `<a href="#${p.id}" data-id="${p.id}" class="${p.roles.includes(currentRole) ? 'is-match' : ''}${i === 0 ? ' is-active' : ''}">0${i + 1} ${esc(p.short)}</a>`).join('');
+  $('#project-index').innerHTML = items.map((p, i) =>
+    `<a href="#${p.id}" data-id="${p.id}" class="is-match${i === 0 ? ' is-active' : ''}">0${i + 1} ${esc(p.short)}</a>`).join('');
 
   $$('.card', list).forEach((card) => {
     card.addEventListener('pointermove', (e) => {
@@ -187,12 +148,15 @@ function renderProjects() {
 }
 
 /* ---------- 블로그 ---------- */
+// 이 직무 태그가 붙은 글만 보여주고, 없으면 섹션을 숨깁니다.
 function renderLog() {
-  const sorted = [...posts].sort((a, b) => Number(b.roles.includes(currentRole)) - Number(a.roles.includes(currentRole)));
-  $('#log-list').innerHTML = sorted.map((p) => `<li class="reveal is-in"><a href="${esc(p.url)}" target="_blank" rel="noopener">
+  const mine = posts.filter((p) => p.roles.includes(currentRole));
+  $('#log').hidden = mine.length === 0;
+  $$('.nav__links a[href="#log"]').forEach((a) => { a.hidden = mine.length === 0; });
+  $('#log-list').innerHTML = mine.map((p) => `<li class="reveal is-in"><a href="${esc(p.url)}" target="_blank" rel="noopener">
     <span class="log__date">${esc(p.date)}</span>
     <span class="log__title">${esc(p.title)}</span>
-    <span class="log__tag">#${esc(p.roles.includes(currentRole) ? currentRole : p.roles[0])}</span>
+    <span class="log__tag">#${esc(currentRole)}</span>
   </a></li>`).join('');
 }
 
@@ -304,8 +268,7 @@ const palette = (() => {
       { label: 'Projects', hint: 'section', run: () => go('#projects') },
       { label: 'Log', hint: 'section', run: () => go('#log') },
       { label: 'Contact', hint: 'section', run: () => go('#contact') },
-      ...roleKeys.map((k) => ({ label: `직무 바꾸기: ${k}`, hint: '?role', run: () => setRole(k) })),
-      ...projects.map((p) => ({ label: p.title, hint: 'project', run: () => go(`#${p.id}`) })),
+      ...roleProjects().map((p) => ({ label: p.title, hint: 'project', run: () => go(`#${p.id}`) })),
       { label: 'GitHub', hint: 'link', run: () => window.open(profile.github, '_blank', 'noopener') },
     ];
   }
@@ -356,4 +319,4 @@ const palette = (() => {
 /* ---------- 시작 ---------- */
 applyRole();
 observeReveals();
-window.addEventListener('popstate', () => setRole(readRole(), { push: false }));
+mountAdminBar(roles, () => currentRole, setRole);

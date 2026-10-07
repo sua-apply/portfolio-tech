@@ -18,13 +18,15 @@ export const profile = {
   now: '[지금 공부하거나 만들고 있는 것]',
 };
 
-// 직무별 표시 이름과 색 (RGB)
+// 직무별 표시 이름, 색 (RGB), 비밀 코드
+// 지원할 때는 주소 뒤에 ?v=코드 를 붙여서 보냅니다. 예: /portfolio-tech/?v=e302f3
+// 코드는 다른 직무를 짐작하지 못하게 하는 용도입니다. 바꾸고 싶으면 아무 글자로 바꿔도 됩니다.
 export const roles = {
-  frontend: { title: 'frontend developer', rgb: '103, 232, 249' },
-  backend: { title: 'backend developer', rgb: '110, 231, 183' },
-  security: { title: 'security engineer', rgb: '249, 168, 212' },
-  data: { title: 'data analyst', rgb: '253, 230, 138' },
-  ai: { title: 'ai engineer', rgb: '196, 181, 253' },
+  frontend: { label: 'Frontend', title: 'frontend developer', rgb: '103, 232, 249', code: 'e302f3' },
+  backend: { label: 'Backend', title: 'backend developer', rgb: '110, 231, 183', code: '886757' },
+  security: { label: 'Security', title: 'security engineer', rgb: '249, 168, 212', code: 'a15501' },
+  data: { label: 'Data', title: 'data analyst', rgb: '253, 230, 138', code: 'd02cf2' },
+  ai: { label: 'AI', title: 'ai engineer', rgb: '196, 181, 253', code: '9adf88' },
 };
 
 export const defaultRole = 'frontend';
