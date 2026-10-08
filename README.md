@@ -8,18 +8,23 @@
 
 이 사이트는 한 번에 한 직무만 보여줍니다 (frontend, backend, security, data, ai).
 주소 뒤의 `?v=코드`로 어떤 직무를 보여줄지 정하고, 방문자 화면에는 직무를 바꾸는 버튼이 없습니다.
-코드는 `assets/js/data.js`의 `roles`에 있는 `code` 값입니다.
+모든 내용은 **Supabase DB**에 있고, 사이트는 열릴 때 그 직무 내용만 받아옵니다.
+사이트 코드에는 다른 직무의 내용도, 링크 코드도, 관리 비밀번호도 들어 있지 않습니다.
+방문자는 테이블을 직접 읽을 수 없고, 공개 함수 `get_portfolio`로 그 직무 내용만 받습니다.
 
-직무별 링크 복사와 관리자 모드는 따로 연결되지 않은 관리 페이지에서 비밀번호를 넣고 사용합니다.
+직무별 링크 복사와 관리자 모드는 따로 연결되지 않은 관리 페이지(`manage.html`)에서 비밀번호를 넣고 사용합니다.
+비밀번호는 DB에서 확인하고, 15분에 10번 틀리면 잠깁니다.
 
 ## 내용 고치기
 
-글, 프로젝트, 기술 목록은 모두 `assets/js/data.js` 한 파일에 있습니다. `[ ]`로 표시된 곳을 채우면 됩니다.
+Supabase → **Table Editor** → 왼쪽 위 schema를 **portfolio**로 바꾸면 표가 보입니다. 저장하면 사이트에 바로 반영돼요.
 
-- `profile`: 이름, 소개, 연락처, 링크
-- `skills`: 직무별 기술. 앞의 7개가 첫 화면 별자리에 나옵니다.
-- `projects`: 프로젝트. `roles`에 적힌 직무에서만 보이고, 앞에 적은 직무일수록 먼저 나옵니다.
-- `posts`: 블로그 글 목록. `roles`에 적힌 직무에서만 보입니다.
+- `profile`: 이름, 생일, 연락처, 링크(`links`의 github · blog), 이력서 주소
+- `tracks`(id = tech): 소개 한 문장·본문, 강점 키워드, 지금 하는 것
+- `roles`: 직무별 이름, 타이핑 문구(`title`), 첫 화면 소개(`hero_desc`), 색(`accent`), 링크 코드(`code`)
+- `skills`: 직무별 기술. `sort` 순서대로 앞의 7개가 첫 화면 별자리에 나옵니다.
+- `projects` + `project_roles`: 프로젝트와 보일 직무. `sort`가 작을수록 먼저 나옵니다.
+- `posts` + `post_roles`: 블로그 글과 보일 직무
 
 ## 기능
 
@@ -35,7 +40,7 @@
 ```
 index.html
 assets/css/style.css
-assets/js/data.js   ← 내용
+assets/js/db.js     ← Supabase 주소 · 방문자용 공개 키, DB 내용 불러오기
 assets/js/main.js   ← 화면 동작
 assets/js/admin-bar.js, manage.js ← 관리자 기능
 ```

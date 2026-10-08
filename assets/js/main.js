@@ -1,10 +1,27 @@
-import { profile, roles, defaultRole, skills, projects, posts } from './data.js';
-import { roleFromURL, mountAdminBar } from './admin-bar.js';
+import { loadPortfolio } from './db.js';
+import { mountAdminBar } from './admin-bar.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- 내용 불러오기 (Supabase) ----------
+   주소의 ?v=코드 에 맞는 직무 하나의 내용만 DB에서 받아요. */
+document.documentElement.classList.add('is-loading');
+let D;
+try {
+  D = await loadPortfolio();
+} catch (err) {
+  document.documentElement.classList.remove('is-loading');
+  const m = document.createElement('p');
+  m.className = 'load-error mono';
+  m.textContent = '내용을 불러오지 못했어요. 잠시 후 새로고침해 주세요.';
+  document.body.prepend(m);
+  throw err;
+}
+const { profile, roles, skills, projects, posts } = D;
+const defaultRole = D.role;
 
 /* ---------- 고정 정보 채우기 ---------- */
 $$('[data-bind]').forEach((el) => { el.textContent = profile[el.dataset.bind] ?? ''; });
@@ -14,7 +31,7 @@ $('#keywords').innerHTML = profile.keywords.map((k) => `<span class="chip">${esc
 
 /* ---------- 직무 (?v=비밀코드) ---------- */
 // 방문자에게는 주소에 담긴 직무 하나만 보입니다. 직무 전환은 관리자 모드에서만 가능합니다.
-let currentRole = roleFromURL(roles, defaultRole);
+let currentRole = D.role;
 
 function setRole(role) {
   if (!roles[role]) return;
@@ -123,7 +140,7 @@ function renderProjects() {
   const items = roleProjects();
   list.innerHTML = items.length
     ? items.map(cardHTML).join('')
-    : '<p class="muted">[이 직무의 프로젝트를 data.js에 추가해 주세요]</p>';
+    : '<p class="muted">[이 직무의 프로젝트를 DB(projects · project_roles)에 추가해 주세요]</p>';
 
   $('#project-index').innerHTML = items.map((p, i) =>
     `<a href="#${p.id}" data-id="${p.id}" class="is-match${i === 0 ? ' is-active' : ''}">0${i + 1} ${esc(p.short)}</a>`).join('');
@@ -319,4 +336,5 @@ const palette = (() => {
 /* ---------- 시작 ---------- */
 applyRole();
 observeReveals();
-mountAdminBar(roles, () => currentRole, setRole);
+document.documentElement.classList.remove('is-loading');
+mountAdminBar(currentRole);
