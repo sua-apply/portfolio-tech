@@ -1,5 +1,6 @@
 # Supabase 무료 플랜은 7일간 DB 요청이 없으면 프로젝트를 일시정지해요.
-# 이 워크플로가 3일마다 공개 함수(get_portfolio)를 한 번 불러서 DB를 깨워 둡니다.
+# 이 워크플로가 매일 공개 함수(get_portfolio)를 불러서 DB를 깨워 둡니다.
+# (Supabase 기준은 '지난 일주일 동안 하루 몇 번씩 요청'이라, 3일마다로는 경고 메일이 올 수 있어 매일로 바꿨어요)
 # portfolio-tech / portfolio-creative 둘 다 같은 DB를 쓰므로 여기 하나면 충분해요.
 #
 # - 응답 내용은 로그에 남기지 않고 HTTP 상태 코드만 출력해요 (개인정보 보호).
@@ -10,7 +11,7 @@ name: Supabase keep-alive
 
 on:
   schedule:
-    - cron: "17 3 */3 * *" # 3일마다 03:17 UTC (한국 12:17)
+    - cron: "17 3 * * *" # 매일 03:17 UTC (한국 12:17)
   workflow_dispatch: # Actions 탭에서 수동 실행 가능
 
 permissions: {}
