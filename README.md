@@ -1,6 +1,6 @@
 # portfolio-tech
 
-박영희(PARK Younghee)의 TECH 포트폴리오입니다. Frontend · Backend · Security · Data · AI
+박수아(PARK Sua)의 TECH 포트폴리오입니다. Frontend · Backend · Security · Data · AI
 
 남색 밤하늘을 배경으로, 선택한 직무의 기술이 별자리로 이어지는 한 페이지 사이트입니다.
 
@@ -19,7 +19,7 @@
 
 Supabase → **Table Editor** → 왼쪽 위 schema를 **portfolio**로 바꾸면 표가 보입니다. 저장하면 사이트에 바로 반영돼요.
 
-- `profile`: 이름, 생일, 연락처, 링크(`links`의 github · blog), 이력서 주소
+- `profile`: 이름, 연락처, 링크(`links`의 github · blog), 이력서 주소
 - `tracks`(id = tech): 소개 한 문장·본문, 강점 키워드, 지금 하는 것
 - `roles`: 직무별 이름, 타이핑 문구(`title`), 첫 화면 소개(`hero_desc`), 색(`accent`), 링크 코드(`code`)
 - `skills`: 직무별 기술. `sort` 순서대로 앞의 7개가 첫 화면 별자리에 나옵니다.

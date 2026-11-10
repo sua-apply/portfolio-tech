@@ -55,7 +55,7 @@ function typeTitle(text) {
 function applyRole() {
   const r = roles[currentRole];
   document.documentElement.style.setProperty('--rgb', r.rgb);
-  document.title = `박영희 · ${r.label} Portfolio`;
+  document.title = `박수아 · ${r.label} Portfolio`;
   $$('[data-role-name]').forEach((el) => { el.textContent = currentRole; });
   typeTitle(r.title);
   $('#stack').innerHTML = skills[currentRole].map((s, i) => `<span class="chip" style="animation-delay:${i * 40}ms">${esc(s)}</span>`).join('');
